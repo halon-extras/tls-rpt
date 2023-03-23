@@ -1,0 +1,26 @@
+organization-name: Example Company
+contact-info: sts-reporting@example.com
+submitter: mail.sender.example.com
+elasticsearch:
+  index: tlsrpt-*
+  nodes:
+    - url: https://10.0.0.1:9200
+  auth:
+    username: elastic
+    password: badpassword
+  tls:
+    rejectUnauthorized: false
+smtp:
+  host: mail.example.com
+  port: 587
+  # override all reports to a specific recipient (debugging)
+  # to: recipient@example.com
+  from: user@example.com
+  tls:
+    rejectUnauthorized: false
+http:
+  # ovveride all reports to a specific URL (debugging)
+  # url: https://10.0.0.1/tlsrpt/report
+  tls:
+    rejectUnauthorized: false
+workers: 5

@@ -1,0 +1,9 @@
+{
+	"name": "tls-rpt",
+	"dockerComposeFile": [
+		"docker-compose.yaml"
+	],
+	"service": "tls-rpt",
+  "workspaceFolder": "/tlsrpt",
+	"extensions": []
+}

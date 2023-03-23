@@ -1,0 +1,53 @@
+function tls_rpt($connection, $message, $sts = none)
+{
+    $report = [];
+    $report["policy-domain"] = $message["recipientaddress"]["domain"];
+    if ($connection["tls"]["tlsa"]["records"] or $connection["tls"]["tlsa"]["error"])
+    {
+        $report["policy-type"] = "tlsa";
+        if ($connection["tls"]["tlsa"]["records"])
+            foreach ($connection["tls"]["tlsa"]["records"] as $record)
+                $report["policy-string"][] = array_join($record, " "); 
+    }
+    else if ($sts)
+    {
+         $report["policy-type"] = "sts";
+         $report["policy-string"] = array_map(str_strip, str_split($sts["policy-string"] ?? "", "\n"));
+         $report["mx-host"] = $sts["policy"]["mx"] ?? [];
+    }
+    else
+    {
+        $report["policy-type"] = "no-policy-found";
+    }
+    if ($sts["tlsrpt"])
+        $report["result-type"] = $sts["tlsrpt"];
+    else if (!$connection["tls"]["started"])
+    {
+        if (!$connection["tls"]["tlsrpt"])
+            return none; /* error not related to TLS */
+        $report["result-type"] = $connection["tls"]["tlsrpt"];
+        if ($connection["tls"]["peercert"]["error"])
+           $report["failure-reason-code"] = $connection["tls"]["peercert"]["error"];
+    }
+    else
+        $report["result-type"] = "success";
+    if ($connection["localip"])
+        $report["sending-mta-ip"] = $connection["localip"];
+    if ($connection["remotemx"])
+        $report["receiving-mx-hostname"] = $connection["remotemx"];
+    if ($connection["remoteip"])
+        $report["receiving-ip"] = $connection["remoteip"];
+    return $report;
+}
+
+function tls_rpt_fetch_dnstxt($policydomain)
+{
+    $dnstxt = dns_query("_smtp._tls.$policydomain", ["type" => "txt"]);
+    if (!is_array($dnstxt["result"]))
+        return false;
+    // The TXT record MUST begin with the version field
+    $trtxts = array_filter(function ($r) { return $r[0:11] == "v=TLSRPTv1;"; }, $dnstxt["result"]);
+    if (length($trtxts) != 1)
+        return false;
+    return $trtxts[0];
+}
