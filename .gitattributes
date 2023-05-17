@@ -1,1 +1,2 @@
 reports/**/* linguist-vendored
+.devcontainer/**/* linguist-vendored
