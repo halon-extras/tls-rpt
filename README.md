@@ -1,14 +1,30 @@
-# tls-rpt
+# SMTP TLS Reporting
 
-Pre-delivery
+This project implements SMTP TLS reporting (rfc8460). It supports both MTA-STS (rfc8461) and DANE (rfc7672). The reporting data is collected from the Pre- and Post-delivery hook and is storted in a Elastic database.
+The data is fetch and proccessed by a service written in node.js. Reports can be sent using both SMTP and HTTP.
+
+## Reporting service
+
+The reporting service should be installed on a single server.
+
+## MTA installation
+
+On all MTA instances, the ``tls-rpt.hsl`` file should be added to the configuration and imported in the pre- and post delivery hook.
+
+### Pre-delivery
+
+The follwoing code should be added to the pre-delivery hook.
 
 ```
-	// MTA-STS
-	$mtasts = mta_sts($message["recipientaddress"]["domain"]);
-	if (is_array($mtasts))
+import { tls_rpt_fetch_dnstxt, tls_rpt } from "file:tls-rpt.hsl";
+
+// MTA-STS
+$mtasts = mta_sts($message["recipientaddress"]["domain"]);
+if (is_array($mtasts))
+{
+	if ($mtasts["error"])
 	{
-		$context["sts"] = $mtasts;
-		if ($mtasts["error"])
+		if (tls_rpt_fetch_dnstxt($message["recipientaddress"]["domain"]))
 		{
 			$tlsrpt = tls_rpt([], $message, $mtasts);
 			$logtlsrpt = [
@@ -30,27 +46,33 @@ Pre-delivery
 				...$tlsrpt
 			];
 			http($logtlsrpt["url"].$logtlsrpt["path"], $logtlsrpt["httpoptions"], [], json_encode($logdata));
+		}
 
-			Queue(["reason" => "Bad MTA-STS: ". $mtasts["error"]]);
-		}
-		if ($mtasts["policy"]["mode"] == "enforce")
-		{
-			$tryargs += [
-				"mx_include" => $mtasts["policy"]["mx"],
-				"tls" => "dane_fallback_require_verify",
-				"tls_sni" => true,
-				"tls_verify_host" => true,
-				"tls_default_ca" => true,
-				"tls_protocols" => "!SSLv2,!SSLv3,!TLSv1,!TLSv1.1"
-			];
-		}
+		Queue(["reason" => "Bad MTA-STS: ". $mtasts["error"]]);
 	}
-	Try($tryargs);
+	$context["sts"] = $mtasts;
+	if ($mtasts["policy"]["mode"] == "enforce")
+	{
+		$tryargs += [
+			"mx_include" => $mtasts["policy"]["mx"],
+			"tls" => "dane_fallback_require_verify",
+			"tls_sni" => true,
+			"tls_verify_host" => true,
+			"tls_default_ca" => true,
+			"tls_protocols" => "!SSLv2,!SSLv3,!TLSv1,!TLSv1.1"
+		];
+	}
+}
+Try($tryargs);
 ```
 
-Post-delivery
+### Post-delivery
+
+The follwoing code shoudl be added to the post-delivery hook.
 
 ```
+import { tls_rpt_fetch_dnstxt, tls_rpt } from "file:tls-rpt.hsl";
+
 if ($arguments["attempt"] and tls_rpt_fetch_dnstxt($message["recipientaddress"]["domain"]))
 {
 	$tlsrpt = tls_rpt($arguments["attempt"]["connection"], $message, $context["sts"]);
