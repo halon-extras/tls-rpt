@@ -1,7 +1,7 @@
 # SMTP TLS Reporting
 
-This project implements SMTP TLS reporting (rfc8460). It supports both MTA-STS (rfc8461) and DANE (rfc7672). The reporting data is collected from the Pre- and Post-delivery hook and is storted in a Elastic database.
-The data is fetch and proccessed by a service written in node.js. Reports can be sent using both SMTP and HTTP.
+This project implements SMTP TLS reporting (rfc8460). It supports both MTA-STS (rfc8461) and DANE (rfc7672). The reporting data is collected from the Pre- and Post-delivery hook and is stored in an Elastic database.
+The data is fetch and processed by a service written in node.js. Reports can be sent using both SMTP and HTTP.
 
 ## Reporting service
 
@@ -13,7 +13,7 @@ On all MTA instances, the ``tls-rpt.hsl`` file should be added to the configurat
 
 ### Pre-delivery
 
-The follwoing code should be added to the pre-delivery hook.
+The following code should be added to the pre-delivery hook.
 
 ```
 import { tls_rpt_fetch_dnstxt, tls_rpt } from "file:tls-rpt.hsl";
@@ -68,7 +68,7 @@ Try($tryargs);
 
 ### Post-delivery
 
-The follwoing code shoudl be added to the post-delivery hook.
+The following code should be added to the post-delivery hook.
 
 ```
 import { tls_rpt_fetch_dnstxt, tls_rpt } from "file:tls-rpt.hsl";
